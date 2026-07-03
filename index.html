@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Xtray | Site File</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: #0a0612;
+            background-image: radial-gradient(ellipse at top, rgba(124,58,237,0.08), transparent 60%);
+            color: #e5e5e5;
+            min-height: 100vh;
+        }
+
+        /* HEADER */
+        header {
+            display: flex; align-items: flex-start; justify-content: space-between;
+            padding: 14px 18px; gap: 10px; flex-wrap: nowrap;
+            border-bottom: none;
+        }
+        .header-actions { display: flex; gap: 6px; flex-shrink: 0; }
+        .hbtn {
+            display: flex; align-items: center; gap: 4px;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+            color: #ccc; border-radius: 8px; padding: 7px 10px;
+            font-size: 10.5px; font-weight: 700; text-decoration: none; cursor: pointer;
+            white-space: nowrap;
+        }
+        .hbtn.pink { color: #f472b6; border-color: rgba(244,114,182,0.3); background: rgba(244,114,182,0.08); }
+
+        /* BIG TAB GRID */
+        .tab-grid-wrap { padding: 0 18px 6px; }
+        .tab-grid {
+            display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px;
+            background: rgba(255,255,255,0.02); border: 1px solid rgba(168,85,247,0.15);
+            border-radius: 12px; padding: 5px;
+        }
+        .htab {
+            display: flex; flex-direction: row; align-items: center; justify-content: center; gap: 6px;
+            padding: 10px 6px; border-radius: 10px; font-size: 12px; font-weight: 700;
+            background: transparent; border: 1px solid transparent;
+            color: #999; cursor: pointer; font-family: inherit;
+        }
+        .htab .htab-icon { font-size: 16px; }
+        .htab.active { background: rgba(168,85,247,0.1); border-color: rgba(168,85,247,0.5); color: #fff; }
+        .logo { display: flex; align-items: center; gap: 10px; }
+        .logo-icon {
+            width: 34px; height: 34px; border-radius: 8px;
+            background: #1a1428; border: 1px solid rgba(168,85,247,0.3);
+            display: flex; align-items: center; justify-content: center;
+            font-weight: 800; font-size: 15px; color: #a855f7;
+        }
+        .logo-text { font-weight: 800; font-size: 15px; letter-spacing: 0.5px; }
+        .logo-text .accent { color: #a855f7; }
+        .header-actions { display: flex; gap: 8px; }
+        .hbtn {
+            display: flex; align-items: center; gap: 5px;
+            background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08);
+            color: #ccc; border-radius: 8px; padding: 7px 12px;
+            font-size: 11px; font-weight: 600; text-decoration: none;
+        }
+        /* PAGE TITLE */
+        .page-title {
+            text-align: center; padding: 32px 20px 20px;
+        }
+        .page-title h1 {
+            font-size: 26px; font-weight: 800;
+            background: linear-gradient(90deg, #e5e5e5, #a855f7);
+            -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+        .page-title p { font-size: 12px; color: #999; margin-top: 6px; }
+
+        /* CONTAINER */
+        .container { max-width: 720px; margin: 0 auto; padding: 0 20px 40px; }
+
+        /* SEARCH ROW */
+        .search-row {
+            display: flex; gap: 10px; margin-bottom: 16px; align-items: center;
+        }
+        .search-box {
+            flex: 1; display: flex; align-items: center; gap: 8px;
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.07);
+            border-radius: 10px; padding: 0 14px;
+        }
+        .search-box input {
+            flex: 1; background: none; border: none; outline: none;
+            color: #eee; font-size: 12px; font-family: inherit; padding: 11px 0;
+        }
+        .search-box input::placeholder { color: #666; }
+        .total-badge {
+            background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.25);
+            border-radius: 10px; padding: 10px 14px; font-size: 11px; color: #aaa;
+            white-space: nowrap;
+        }
+        .total-badge b { color: #a855f7; }
+
+        /* TABLE */
+        .table-card {
+            background: transparent; border: none; overflow: visible;
+        }
+        table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+        thead th {
+            text-align: left; padding: 0 16px 8px; font-size: 10px; font-weight: 700;
+            color: #888; text-transform: uppercase; letter-spacing: 0.6px;
+            border-bottom: none;
+        }
+        tbody tr {
+            background: rgba(255,255,255,0.025); border: 1px solid rgba(255,255,255,0.07);
+            border-bottom: none;
+        }
+        tbody tr td:first-child { border-radius: 12px 0 0 12px; }
+        tbody tr td:last-child { border-radius: 0 12px 12px 0; }
+        tbody tr:hover { background: rgba(168,85,247,0.05); }
+        td { padding: 14px 16px; font-size: 13px; vertical-align: middle; }
+        .file-cell { display: flex; align-items: center; gap: 10px; }
+        .file-icon-box {
+            width: 34px; height: 34px; border-radius: 8px; flex-shrink: 0;
+            display: flex; align-items: center; justify-content: center; font-size: 17px;
+            background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.3);
+        }
+        .file-info-text a { color: #fff; text-decoration: none; font-weight: 600; font-size: 13px; }
+        .file-info-text a:hover { color: #c084fc; }
+        .file-info-text .desc { font-size: 10.5px; color: #777; margin-top: 1px; }
+        .td-date { color: #888; font-size: 12px; white-space: nowrap; }
+        .td-size { color: #888; font-size: 12px; white-space: nowrap; }
+        .open-btn {
+            display: inline-flex; align-items: center; gap: 5px;
+            background: rgba(168,85,247,0.15); border: 1px solid rgba(168,85,247,0.35);
+            color: #c084fc; border-radius: 7px; padding: 6px 13px;
+            font-size: 11px; font-weight: 700; text-decoration: none;
+            cursor: pointer; font-family: inherit; white-space: nowrap;
+        }
+        .open-btn:hover { background: rgba(168,85,247,0.25); }
+        .empty-row td { text-align: center; padding: 44px 20px; color: #666; font-size: 12px; }
+        .empty-illustration {
+            width: 72px; height: 72px; margin: 0 auto 16px; border-radius: 20px;
+            background: rgba(168,85,247,0.1); display: flex; align-items: center;
+            justify-content: center; font-size: 32px;
+        }
+        .empty-title { font-size: 14px; font-weight: 700; color: #ccc; margin-bottom: 4px; }
+        .empty-sub { font-size: 12px; color: #777; }
+        .type-pill {
+            font-size: 10px; font-weight: 700; padding: 3px 9px; border-radius: 6px;
+            background: rgba(168,85,247,0.1); border: 1px solid rgba(168,85,247,0.25);
+            color: #c084fc; white-space: nowrap;
+        }
+
+        /* PAGINATION */
+        .pagination {
+            display: flex; justify-content: center; align-items: center;
+            gap: 6px; padding: 16px; flex-wrap: wrap;
+        }
+        .page-btn {
+            background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.08);
+            color: #999; border-radius: 7px; padding: 6px 11px;
+            font-size: 11px; font-weight: 700; cursor: pointer; font-family: inherit;
+        }
+        .page-btn.active { background: rgba(168,85,247,0.2); border-color: rgba(168,85,247,0.4); color: #c084fc; }
+
+        /* FOOTER */
+        footer { text-align: center; padding: 28px 18px 24px; font-size: 12px; color: #666; border-top: 1px solid rgba(255,255,255,0.06); margin-top: 20px; }
+        footer a { color: #a855f7; text-decoration: none; font-weight: 600; }
+        .footer-socials { display: flex; justify-content: center; align-items: center; gap: 14px; margin: 20px 0 14px; }
+        .social-icon {
+            width: 50px; height: 50px; border-radius: 50%;
+            background: #181422; border: 1px solid rgba(168,85,247,0.35);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 19px; color: #fff; text-decoration: none;
+            transition: all 0.25s ease;
+        }
+        .social-icon:hover {
+            transform: scale(1.08);
+            border-color: rgba(168,85,247,0.9);
+            box-shadow: 0 0 16px rgba(168,85,247,0.45);
+        }
+        .footer-version { font-size: 11px; color: #666; }
+
+        /* MODAL */
+        .modal-bg {
+            display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75);
+            z-index: 100; align-items: center; justify-content: center;
+            padding: 20px; backdrop-filter: blur(6px);
+        }
+        .modal-bg.open { display: flex; }
+        .modal {
+            background: #14101f; border: 1px solid rgba(168,85,247,0.25);
+            border-radius: 16px; padding: 26px; max-width: 400px; width: 100%;
+        }
+        .modal-icon-box {
+            width: 52px; height: 52px; border-radius: 12px; margin: 0 auto 14px;
+            display: flex; align-items: center; justify-content: center; font-size: 24px;
+            background: rgba(168,85,247,0.12); border: 1px solid rgba(168,85,247,0.3);
+        }
+        .modal-title { font-size: 15px; font-weight: 700; color: #fff; text-align: center; margin-bottom: 6px; }
+        .modal-info { font-size: 11.5px; color: #999; text-align: center; margin-bottom: 20px; line-height: 1.6; }
+        .modal-dl {
+            display: block; width: 100%; text-align: center;
+            background: linear-gradient(135deg, #a855f7, #7c3aed); color: #fff; border: none;
+            border-radius: 10px; padding: 12px; font-size: 12.5px; font-weight: 700;
+            font-family: inherit; cursor: pointer; text-decoration: none; margin-bottom: 8px;
+        }
+        .modal-cancel {
+            display: block; width: 100%; text-align: center;
+            background: none; color: #888; border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 10px; padding: 10px; font-size: 11.5px;
+            font-family: inherit; cursor: pointer;
+        }
+
+        .toast {
+            position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+            background: #1a1428; border: 1px solid rgba(168,85,247,0.3); color: #fff;
+            border-radius: 10px; padding: 10px 18px; font-size: 12px; z-index: 999;
+            opacity: 0; transition: opacity 0.2s; white-space: nowrap;
+        }
+        .toast.show { opacity: 1; }
+
+        @media (max-width: 560px) {
+            .td-date { display: none; }
+            th:nth-child(3) { display: none; }
+            .type-pill { font-size: 9px; padding: 2px 6px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-bg" id="modal">
+    <div class="modal">
+        <div class="modal-icon-box" id="m-icon">📦</div>
+        <div class="modal-title" id="m-name">File Name</div>
+        <div class="modal-info" id="m-info">Info</div>
+        <a class="modal-dl" id="m-dl" href="#" target="_blank">⬇ Download Now</a>
+        <button class="modal-cancel" onclick="closeModal()">Cancel</button>
+    </div>
+</div>
+
+<header>
+    <div class="logo" style="min-width:0;flex:1;">
+        <div class="logo-icon">X</div>
+        <div style="min-width:0;">
+            <div class="logo-text">XTRAY <span class="accent">FILES</span></div>
+            <div style="font-size:10px;color:#888;font-weight:500;margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">Download Script, Executor, Cheat & More</div>
+        </div>
+    </div>
+    <div class="header-actions">
+        <a href="#" class="hbtn pink">❤ Donate</a>
+        <a href="#" class="hbtn" onclick="openSaran();return false;">💡 Saran</a>
+        <a href="#" class="hbtn" onclick="openLapor();return false;">🚨 Lapor</a>
+    </div>
+</header>
+
+<div class="tab-grid-wrap">
+    <div class="tab-grid">
+        <div class="htab active" onclick="setTab('script',this)"><span class="htab-icon">📜</span>Script</div>
+        <div class="htab" onclick="setTab('executor',this)"><span class="htab-icon">⚡</span>Executor</div>
+        <div class="htab" onclick="setTab('cheat',this)"><span class="htab-icon">🎮</span>Cheat</div>
+        <div class="htab" onclick="setTab('file',this)"><span class="htab-icon">📄</span>File</div>
+    </div>
+</div>
+
+<div class="page-title">
+    <h1>File Downloads</h1>
+    <p>Temukan file yang kamu butuhkan dengan cepat dan mudah.</p>
+</div>
+
+<div class="container">
+    <div class="search-row">
+        <div class="search-box">
+            <span style="color:#666;font-size:13px;">🔍</span>
+            <input type="text" id="q" placeholder="Search APK, Script, Executor..." oninput="doSearch()">
+        </div>
+        <div class="total-badge">Total Items: <b id="s-total">0</b></div>
+    </div>
+
+    <div class="table-card">
+        <table>
+            <thead>
+                <tr>
+                    <th>Name</th>
+                    <th>Type</th>
+                    <th>Modified Date</th>
+                    <th>Size</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody id="tbody">
+                <tr><td colspan="5" style="text-align:center;padding:36px;color:#666;">Loading...</td></tr>
+            </tbody>
+        </table>
+    </div>
+
+    <div class="pagination" id="pag"></div>
+</div>
+
+<footer>
+    <div>Xtray Files &copy; 2025 &mdash; <a href="admin-xtray.html">Admin</a></div>
+    <div class="footer-socials">
+        <a href="https://discord.gg/XXXXXXXX" target="_blank" class="social-icon" title="Discord"><i class="fa-brands fa-discord"></i></a>
+        <a href="https://www.tiktok.com/@xsugarcrush" target="_blank" class="social-icon" title="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+        <a href="https://www.youtube.com/@xsugarcrush" target="_blank" class="social-icon" title="YouTube"><i class="fa-brands fa-youtube"></i></a>
+    </div>
+    <div class="footer-version">v1.0.0 &nbsp;•&nbsp; All rights reserved</div>
+</footer>
+
+<script>
+    var db, allFiles = {}, dlCounts = {};
+    var activeTab = 'script', q = '', page = 1, PER = 20;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        var cfg = { databaseURL: "https://xtray-files-default-rtdb.asia-southeast1.firebasedatabase.app/" };
+        if (!firebase.apps.length) firebase.initializeApp(cfg);
+        db = firebase.database();
+
+        db.ref('xtray_files').on('value', function(s) {
+            allFiles = s.val() || {};
+            render();
+        });
+        db.ref('xtray_downloads').on('value', function(s) {
+            dlCounts = {};
+            if (s.val()) Object.values(s.val()).forEach(function(d){ dlCounts[d.file] = (dlCounts[d.file]||0)+1; });
+        });
+    });
+
+    function setTab(tab, el) {
+        activeTab = tab; page = 1;
+        document.querySelectorAll('.htab').forEach(function(b){ b.classList.remove('active'); });
+        el.classList.add('active');
+        render();
+    }
+
+    function doSearch() { q = document.getElementById('q').value.toLowerCase(); page = 1; render(); }
+
+    function getFiltered() {
+        var entries = Object.entries(allFiles);
+        if (activeTab !== 'all') entries = entries.filter(function(e){ return e[1].type === activeTab; });
+        if (q) entries = entries.filter(function(e){
+            return (e[1].name||'').toLowerCase().includes(q) || (e[1].desc||'').toLowerCase().includes(q);
+        });
+        entries.reverse();
+        return entries;
+    }
+
+    function render() {
+        var filtered = getFiltered();
+        document.getElementById('s-total').textContent = filtered.length;
+        var tbody = document.getElementById('tbody');
+        var start = (page-1)*PER;
+        var paged = filtered.slice(start, start+PER);
+
+        if (!paged.length) {
+            tbody.innerHTML = '<tr class="empty-row"><td colspan="5"><div class="empty-illustration">📂</div><div class="empty-title">Belum ada file tersedia.</div><div class="empty-sub">File akan muncul di sini ketika sudah ditambahkan.</div></td></tr>';
+            document.getElementById('pag').innerHTML = '';
+            return;
+        }
+
+        var icons = {script:'📜', executor:'⚡', cheat:'🎮', file:'📄'};
+        var typeLabels = {script:'Script', executor:'Executor', cheat:'Cheat', file:'File'};
+        tbody.innerHTML = paged.map(function(e){
+            var k=e[0], f=e[1];
+            var date = f.timestamp ? new Date(f.timestamp).toLocaleString('en-GB', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '-';
+            return '<tr>'+
+                '<td><div class="file-cell"><div class="file-icon-box">'+(icons[f.type]||'📄')+'</div><div class="file-info-text"><a href="#" onclick="openModal(\''+k+'\');return false;">'+f.name+'</a>'+(f.desc?'<div class="desc">'+f.desc+'</div>':'')+'</div></div></td>'+
+                '<td><span class="type-pill">'+(typeLabels[f.type]||'File')+'</span></td>'+
+                '<td class="td-date">'+date+'</td>'+
+                '<td class="td-size">'+(f.size||'-')+'</td>'+
+                '<td><a href="#" class="open-btn" onclick="openModal(\''+k+'\');return false;">⇩ Open</a></td>'+
+            '</tr>';
+        }).join('');
+
+        var totalPages = Math.ceil(filtered.length/PER);
+        var pag = document.getElementById('pag');
+        if (totalPages <= 1) { pag.innerHTML = ''; return; }
+        var html = '';
+        for (var i=1;i<=totalPages;i++) html += '<button class="page-btn'+(i===page?' active':'')+'" onclick="goPage('+i+')">'+i+'</button>';
+        pag.innerHTML = html;
+    }
+
+    function goPage(p) { page=p; render(); window.scrollTo(0,0); }
+
+    function openModal(key) {
+        var f = allFiles[key];
+        if (!f) return;
+        var icons = {script:'📜', executor:'⚡', cheat:'🎮', file:'📄'};
+        document.getElementById('m-icon').textContent = icons[f.type]||'📄';
+        document.getElementById('m-name').textContent = f.name;
+        document.getElementById('m-info').innerHTML = (f.type||'file').toUpperCase()+' • '+(f.size||'Unknown size')+(f.version?' • '+f.version:'')+(f.desc?'<br>'+f.desc:'');
+        document.getElementById('m-dl').href = f.link || '#';
+        document.getElementById('modal').classList.add('open');
+        if (db) db.ref('xtray_downloads').push({ file: key, time: Date.now() });
+    }
+    function closeModal() { document.getElementById('modal').classList.remove('open'); }
+    document.getElementById('modal').onclick = function(e){ if(e.target===this) closeModal(); };
+
+    function openSaran() {
+        var msg = prompt('💡 Tulis saran kamu untuk Xtray Files:');
+        if (msg && msg.trim() && db) {
+            db.ref('xtray_feedback').push({ type: 'saran', message: msg.trim(), time: Date.now() });
+            showToast('✅ Saran terkirim, makasih!');
+        }
+    }
+
+    function openLapor() {
+        var msg = prompt('🚨 Laporkan masalah (link rusak, file error, dll):');
+        if (msg && msg.trim() && db) {
+            db.ref('xtray_feedback').push({ type: 'lapor', message: msg.trim(), time: Date.now() });
+            showToast('✅ Laporan terkirim, akan segera ditindak!');
+        }
+    }
+
+    function showToast(msg) {
+        var t=document.getElementById('toast');
+        t.
