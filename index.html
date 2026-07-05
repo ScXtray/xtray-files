@@ -212,6 +212,19 @@
             border-radius: 10px; padding: 10px; font-size: 11.5px;
             font-family: inherit; cursor: pointer;
         }
+        .modal-code-box { margin-bottom: 12px; }
+        .modal-code {
+            width: 100%; resize: vertical; background: #0d0918;
+            border: 1px solid rgba(168,85,247,0.25); border-radius: 10px;
+            color: #86efac; font-family: 'Courier New', monospace; font-size: 11px;
+            padding: 10px; outline: none;
+        }
+        .modal-copy-btn {
+            display: block; width: 100%; text-align: center;
+            background: linear-gradient(135deg, #a855f7, #7c3aed); color: #fff; border: none;
+            border-radius: 10px; padding: 12px; font-size: 12.5px; font-weight: 700;
+            font-family: inherit; cursor: pointer; margin-bottom: 8px;
+        }
 
         .toast {
             position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
@@ -220,6 +233,13 @@
             opacity: 0; transition: opacity 0.2s; white-space: nowrap;
         }
         .toast.show { opacity: 1; }
+
+        .breadcrumb { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 12px; color: #999; margin-bottom: 14px; }
+        .breadcrumb .crumb { cursor: pointer; color: #c084fc; font-weight: 600; }
+        .breadcrumb .crumb.current { color: #eee; cursor: default; }
+        .breadcrumb .sep { color: #555; }
+        .folder-icon-box { background: rgba(245,158,11,0.15); border: 1px solid rgba(245,158,11,0.35); }
+        .folder-pill { background: rgba(245,158,11,0.12); border-color: rgba(245,158,11,0.3); color: #fbbf24; }
 
         @media (max-width: 560px) {
             .td-date { display: none; }
@@ -237,6 +257,10 @@
         <div class="modal-icon-box" id="m-icon">📦</div>
         <div class="modal-title" id="m-name">File Name</div>
         <div class="modal-info" id="m-info">Info</div>
+        <div class="modal-code-box" id="m-code-wrap" style="display:none;">
+            <textarea class="modal-code" id="m-code" rows="4" readonly onclick="this.select()"></textarea>
+        </div>
+        <button class="modal-copy-btn" id="m-copy" style="display:none;" onclick="copyScript()">📋 Copy Script</button>
         <a class="modal-dl" id="m-dl" href="#" target="_blank">⬇ Download Now</a>
         <button class="modal-cancel" onclick="closeModal()">Cancel</button>
     </div>
@@ -267,11 +291,12 @@
 </div>
 
 <div class="page-title">
-    <h1>File Downloads</h1>
-    <p>Temukan file yang kamu butuhkan dengan cepat dan mudah.</p>
+    <h1 id="page-h1">Script Roblox</h1>
+    <p id="page-sub">Cari Script Yang Kalian Inginkan</p>
 </div>
 
 <div class="container">
+    <div class="breadcrumb" id="breadcrumb"></div>
     <div class="search-row">
         <div class="search-box">
             <span style="color:#666;font-size:13px;">🔍</span>
@@ -304,15 +329,16 @@
     <div>Xtray Files &copy; 2025 &mdash; <a href="https://site-admin-upload.netlify.app" target="_blank">Admin</a></div>
     <div class="footer-socials">
         <a href="https://discord.gg/XXXXXXXX" target="_blank" class="social-icon" title="Discord"><i class="fa-brands fa-discord"></i></a>
-        <a href="https://www.tiktok.com/@xsugarcrush" target="_blank" class="social-icon" title="TikTok"><i class="fa-brands fa-tiktok"></i></a>
+        <a href="https://www.tiktok.com/@xtray_background?_r=1&_t=ZS-97mAo3OSAoG" target="_blank" class="social-icon" title="TikTok"><i class="fa-brands fa-tiktok"></i></a>
         <a href="https://www.youtube.com/@xsugarcrush" target="_blank" class="social-icon" title="YouTube"><i class="fa-brands fa-youtube"></i></a>
     </div>
     <div class="footer-version">v1.0.0 &nbsp;•&nbsp; All rights reserved</div>
 </footer>
 
 <script>
-    var db, allFiles = {}, dlCounts = {};
+    var db, allFiles = {}, dlCounts = {}, allFolders = {};
     var activeTab = 'script', q = '', page = 1, PER = 20;
+    var folderPath = [];
 
     document.addEventListener('DOMContentLoaded', function() {
         var cfg = { databaseURL: "https://xtray-files-default-rtdb.asia-southeast1.firebasedatabase.app/" };
@@ -323,24 +349,72 @@
             allFiles = s.val() || {};
             render();
         });
+        db.ref('xtray_folders').on('value', function(s) {
+            allFolders = s.val() || {};
+            render();
+        });
         db.ref('xtray_downloads').on('value', function(s) {
             dlCounts = {};
             if (s.val()) Object.values(s.val()).forEach(function(d){ dlCounts[d.file] = (dlCounts[d.file]||0)+1; });
         });
     });
 
+    var tabText = {
+        script: { title: 'Script Roblox', sub: 'Cari Script Yang Kalian Inginkan' },
+        executor: { title: 'Roblox Executor', sub: 'Cari Executor Yang Kalian Mau' },
+        cheat: { title: 'Cheat & Mod Games', sub: 'Download Cheat Yang Kalian Inginkan' },
+        file: { title: 'File', sub: 'Download File Yang Kamu Butuhkan' }
+    };
+
     function setTab(tab, el) {
-        activeTab = tab; page = 1;
+        activeTab = tab; page = 1; folderPath = [];
         document.querySelectorAll('.htab').forEach(function(b){ b.classList.remove('active'); });
         el.classList.add('active');
+        var t = tabText[tab] || tabText.script;
+        document.getElementById('page-h1').textContent = t.title;
+        document.getElementById('page-sub').textContent = t.sub;
         render();
     }
 
     function doSearch() { q = document.getElementById('q').value.toLowerCase(); page = 1; render(); }
 
-    function getFiltered() {
-        var entries = Object.entries(allFiles);
-        if (activeTab !== 'all') entries = entries.filter(function(e){ return e[1].type === activeTab; });
+    function currentFolderId() { return folderPath.length ? folderPath[folderPath.length-1].id : 'root'; }
+
+    function openFolder(id, name) {
+        folderPath.push({ id: id, name: name });
+        page = 1; q = ''; document.getElementById('q').value = '';
+        render();
+    }
+
+    function goBreadcrumb(index) {
+        folderPath = index < 0 ? [] : folderPath.slice(0, index+1);
+        page = 1;
+        render();
+    }
+
+    function renderBreadcrumb() {
+        var html = '<span class="crumb'+(folderPath.length?'':' current')+'" onclick="goBreadcrumb(-1)">🏠 Home</span>';
+        folderPath.forEach(function(p, i){
+            html += '<span class="sep">/</span><span class="crumb'+(i===folderPath.length-1?' current':'')+'" onclick="goBreadcrumb('+i+')">'+p.name+'</span>';
+        });
+        document.getElementById('breadcrumb').innerHTML = html;
+    }
+
+    function getFolders() {
+        var fid = currentFolderId();
+        var entries = Object.entries(allFolders).filter(function(e){
+            return e[1].type === activeTab && (e[1].parentId||'root') === fid;
+        });
+        if (q) entries = entries.filter(function(e){ return (e[1].name||'').toLowerCase().includes(q); });
+        entries.sort(function(a,b){ return (a[1].name||'').localeCompare(b[1].name||''); });
+        return entries;
+    }
+
+    function getFiles() {
+        var fid = currentFolderId();
+        var entries = Object.entries(allFiles).filter(function(e){
+            return e[1].type === activeTab && (e[1].folderId||'root') === fid;
+        });
         if (q) entries = entries.filter(function(e){
             return (e[1].name||'').toLowerCase().includes(q) || (e[1].desc||'').toLowerCase().includes(q);
         });
@@ -349,33 +423,54 @@
     }
 
     function render() {
-        var filtered = getFiltered();
-        document.getElementById('s-total').textContent = filtered.length;
+        renderBreadcrumb();
+        var folders = getFolders();
+        var files = getFiles();
+        var total = folders.length + files.length;
+        document.getElementById('s-total').textContent = total;
         var tbody = document.getElementById('tbody');
-        var start = (page-1)*PER;
-        var paged = filtered.slice(start, start+PER);
 
-        if (!paged.length) {
+        if (!total) {
             tbody.innerHTML = '<tr class="empty-row"><td colspan="5"><div class="empty-illustration">📂</div><div class="empty-title">Belum ada file tersedia.</div><div class="empty-sub">File akan muncul di sini ketika sudah ditambahkan.</div></td></tr>';
             document.getElementById('pag').innerHTML = '';
             return;
         }
 
+        var combined = folders.map(function(e){ return { isFolder: true, key: e[0], data: e[1] }; })
+            .concat(files.map(function(e){ return { isFolder: false, key: e[0], data: e[1] }; }));
+
+        var start = (page-1)*PER;
+        var paged = combined.slice(start, start+PER);
+
         var icons = {script:'📜', executor:'⚡', cheat:'🎮', file:'📄'};
         var typeLabels = {script:'Script', executor:'Executor', cheat:'Cheat', file:'File'};
-        tbody.innerHTML = paged.map(function(e){
-            var k=e[0], f=e[1];
-            var date = f.timestamp ? new Date(f.timestamp).toLocaleString('en-GB', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '-';
+
+        tbody.innerHTML = paged.map(function(item){
+            var date = item.data.timestamp ? new Date(item.data.timestamp).toLocaleString('en-GB', {day:'2-digit',month:'short',year:'numeric',hour:'2-digit',minute:'2-digit'}) : '-';
+
+            if (item.isFolder) {
+                var fname = (item.data.name||'').replace(/'/g,"\\'");
+                return '<tr>'+
+                    '<td><div class="file-cell"><div class="file-icon-box folder-icon-box">📁</div><div class="file-info-text"><a href="#" onclick="openFolder(\''+item.key+'\',\''+fname+'\');return false;">'+item.data.name+'</a></div></div></td>'+
+                    '<td><span class="type-pill folder-pill">Folder</span></td>'+
+                    '<td class="td-date">'+date+'</td>'+
+                    '<td class="td-size">-</td>'+
+                    '<td><a href="#" class="open-btn" onclick="openFolder(\''+item.key+'\',\''+fname+'\');return false;">📂 Buka</a></td>'+
+                '</tr>';
+            }
+
+            var k = item.key, f = item.data;
+            var actionLabel = f.type === 'script' ? '📋 Copy' : '⇩ Open';
             return '<tr>'+
                 '<td><div class="file-cell"><div class="file-icon-box">'+(icons[f.type]||'📄')+'</div><div class="file-info-text"><a href="#" onclick="openModal(\''+k+'\');return false;">'+f.name+'</a>'+(f.desc?'<div class="desc">'+f.desc+'</div>':'')+'</div></div></td>'+
                 '<td><span class="type-pill">'+(typeLabels[f.type]||'File')+'</span></td>'+
                 '<td class="td-date">'+date+'</td>'+
                 '<td class="td-size">'+(f.size||'-')+'</td>'+
-                '<td><a href="#" class="open-btn" onclick="openModal(\''+k+'\');return false;">⇩ Open</a></td>'+
+                '<td><a href="#" class="open-btn" onclick="openModal(\''+k+'\');return false;">'+actionLabel+'</a></td>'+
             '</tr>';
         }).join('');
 
-        var totalPages = Math.ceil(filtered.length/PER);
+        var totalPages = Math.ceil(combined.length/PER);
         var pag = document.getElementById('pag');
         if (totalPages <= 1) { pag.innerHTML = ''; return; }
         var html = '';
@@ -392,12 +487,36 @@
         document.getElementById('m-icon').textContent = icons[f.type]||'📄';
         document.getElementById('m-name').textContent = f.name;
         document.getElementById('m-info').innerHTML = (f.type||'file').toUpperCase()+' • '+(f.size||'Unknown size')+(f.version?' • '+f.version:'')+(f.desc?'<br>'+f.desc:'');
-        document.getElementById('m-dl').href = f.link || '#';
+
+        var isScript = f.type === 'script';
+        document.getElementById('m-code-wrap').style.display = isScript ? 'block' : 'none';
+        document.getElementById('m-copy').style.display = isScript ? 'block' : 'none';
+        document.getElementById('m-dl').style.display = isScript ? 'none' : 'block';
+        if (isScript) {
+            document.getElementById('m-code').value = f.code || '';
+        } else {
+            document.getElementById('m-dl').href = f.link || '#';
+        }
+
         document.getElementById('modal').classList.add('open');
         if (db) db.ref('xtray_downloads').push({ file: key, time: Date.now() });
     }
     function closeModal() { document.getElementById('modal').classList.remove('open'); }
     document.getElementById('modal').onclick = function(e){ if(e.target===this) closeModal(); };
+
+    function copyScript() {
+        var codeEl = document.getElementById('m-code');
+        codeEl.select();
+        codeEl.setSelectionRange(0, 99999);
+        function done(){ showToast('✅ Script berhasil disalin!'); }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(codeEl.value).then(done).catch(function(){
+                document.execCommand('copy'); done();
+            });
+        } else {
+            document.execCommand('copy'); done();
+        }
+    }
 
     function openSaran() {
         var msg = prompt('💡 Tulis saran kamu untuk Xtray Files:');
